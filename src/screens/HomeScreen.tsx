@@ -1,0 +1,28 @@
+import React from 'react';
+import {Button, SafeAreaView, StyleSheet, Text, View} from 'react-native';
+const HomeScreen = ({navigation}: {navigation: any}): JSX.Element => {
+  return (
+    <SafeAreaView style={styles.container}>
+      <View>
+        <Text>Home Screen</Text>
+        <Button
+          title={'About로 이동하기'}
+          onPress={() => navigation.navigate('About')}
+        />
+        <Button
+          title={'WebView로 이동하기'}
+          onPress={() => navigation.navigate('WebView')}
+        />
+      </View>
+    </SafeAreaView>
+  );
+};
+
+// css
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: 'red',
+  },
+});
+export default HomeScreen;
