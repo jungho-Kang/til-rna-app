@@ -30,7 +30,7 @@ public class MainActivity extends ReactActivity {
         // If you opted-in for the New Architecture, we enable the Fabric Renderer.
         DefaultNewArchitectureEntryPoint.getFabricEnabled());
   }
-  
+
   // 추가
   @Override
   protected void onCreate(Bundle savedInstanceState) {

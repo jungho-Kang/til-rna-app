@@ -6,7 +6,7 @@ import WebViewScreen from '../screens/WebViewScreen';
 
 const ScreenStackNavigator = () => {
   // screen 스택에 대한 정보관리
-  // 관례상 변수명을 Stack으로 한다. (참조)
+  // 관례상 변수명을 Stack 으로 한다.(참조)
   const Stack = createStackNavigator();
   return (
     <Stack.Navigator>
@@ -16,4 +16,5 @@ const ScreenStackNavigator = () => {
     </Stack.Navigator>
   );
 };
+
 export default ScreenStackNavigator;
