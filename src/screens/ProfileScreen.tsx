@@ -1,121 +1,193 @@
-import React, {useState} from 'react';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import React, {useEffect, useState} from 'react';
 import {
   FlatList,
   SafeAreaView,
   StyleSheet,
-  Switch,
   Text,
   View,
   TouchableOpacity,
+  TextInput,
   Alert,
 } from 'react-native';
+
+// 키명 (추후 : /src/constants 폴더 / key.ts 등에 보관하고 export ...)
+const STORAGE_KEY = '@tasks';
 
 type Task = {
   id: string;
   title: string;
-  done: boolean;
 };
 
 export default function ProfileScreen() {
-  // 할일 데이터 state
-  const [tasks, setTasks] = useState<Task[]>([
-    {id: '1', title: '아침 먹기', done: true},
-    {id: '2', title: '점심 먹기', done: false},
-    {id: '3', title: '저녁 먹기', done: false},
-  ]);
-
-  // 할일 목록중  state의 done 변경
-  const toggleSwitch = (id: string) => {
-    setTasks(prev =>
-      prev.map(item => (item.id === id ? {...item, done: !item.done} : item)),
-    );
-  };
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [input, setInput] = useState('');
 
   const renderItem = ({item}: {item: Task}) => (
-    <View style={styles.itemRow}>
-      <Text style={[styles.itemText, item.done && styles.checkedText]}>
-        {item.done ? '✔' : '✘'} {item.title}
-      </Text>
-      <Switch
-        value={item.done}
-        onValueChange={() => toggleSwitch(item.id)}
-        thumbColor={item.done ? 'orange' : 'gray'}
-        trackColor={{false: '#ccc', true: 'green'}}
-      />
+    <View style={styles.taskItem}>
+      <Text style={styles.taskText}>{item.title}</Text>
+      <TouchableOpacity
+        style={styles.deleteButton}
+        onPress={() => handleDelete(item.id)}>
+        <Text style={styles.deleteText}>삭제</Text>
+      </TouchableOpacity>
     </View>
   );
 
+  // 추가
+  const handleAdd = () => {
+    if (input.trim() === '') {
+      Alert.alert('입력 오류', '할 일을 입력해주세요!');
+      return;
+    }
+
+    const newTask: Task = {
+      id: Date.now().toString(),
+      title: input.trim(),
+    };
+
+    const updatedTasks = [...tasks, newTask];
+    setTasks(prev => [...prev, newTask]);
+    saveTask(updatedTasks);
+    setInput('');
+  };
+
+  // 삭제
+  const handleDelete = (id: string) => {
+    Alert.alert('삭제 확인', '정말 삭제할까요?', [
+      {text: '취소', style: 'cancel'},
+      {
+        text: '삭제',
+        style: 'destructive',
+        onPress: () => {
+          setTasks(prev => prev.filter(task => task.id !== id));
+        },
+      },
+    ]);
+  };
+
+  // 자료 불러오기
+  const loadTask = async () => {
+    try {
+      const stored = await AsyncStorage.getItem(STORAGE_KEY);
+      console.log('📦 저장소에서 불러온 값:', stored);
+
+      if (!stored) {
+        Alert.alert('자료가 없습니다.');
+        return;
+      }
+
+      console.log(stored);
+
+      const parsed = JSON.parse(stored);
+      console.log('✅ 파싱된 데이터:', parsed);
+
+      setTasks(parsed);
+      Alert.alert('자료 호출이 완료 되었습니다.');
+    } catch (error) {
+      console.log('❌ 불러오기 실패:', error);
+    }
+  };
+  // 자료 저장하기
+  const saveTask = async (data: Task[]) => {
+    try {
+      console.log('저장?', JSON.stringify(data));
+
+      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    } catch (error) {
+      console.log('error', error);
+    }
+  };
+
+  // 데이터는 tasks의 state가 변경될 때 저장
+  useEffect(() => {
+    saveTask(tasks);
+  }, [tasks]);
+
+  // 데이터는 마운트시 불러오기
+  useEffect(() => {
+    loadTask();
+  }, []);
+
   return (
     <SafeAreaView style={styles.container}>
-      <View style={styles.viewContainer}>
-        <Text style={styles.title}>할일체크리스트</Text>
-        {/* 목록 출력 */}
+      <View style={[styles.container, {width: '100%'}]}>
+        <Text style={styles.title}>저장되는 할일목록 📥</Text>
         <FlatList
           data={tasks}
           renderItem={renderItem}
           keyExtractor={item => item.id}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          ListEmptyComponent={
+            <Text style={{color: '#929292'}}>할 일이 없습니다.</Text>
+          }
         />
-
-        <TouchableOpacity
-          style={styles.button}
-          onPress={() => Alert.alert('오늘도 화이팅하세요. ^^')}
-          onPressIn={() => console.log('onPressIn')}
-          onPressOut={() => console.log('onPressOut')}>
-          <Text style={styles.buttonText}>메시지 보내기</Text>
-        </TouchableOpacity>
+        <View style={styles.inputRow}>
+          <TextInput
+            style={styles.input}
+            placeholder="할 일을 입력해주세요."
+            value={input}
+            onChangeText={setInput}
+          />
+          <TouchableOpacity style={styles.addButton} onPress={handleAdd}>
+            <Text style={styles.addText}>추가</Text>
+          </TouchableOpacity>
+        </View>
       </View>
     </SafeAreaView>
   );
 }
+
 const styles = StyleSheet.create({
   container: {
     flex: 1,
     alignItems: 'center',
-    backgroundColor: '#fff',
-    width: '100%',
-  },
-  viewContainer: {
-    flex: 1,
-    width: '100%',
-    padding: 30,
-    backgroundColor: '#f2f2f2',
   },
   title: {
     fontSize: 22,
-    marginBottom: 20,
     fontWeight: 'bold',
-    textAlign: 'center',
+    marginBottom: 14,
   },
-  itemRow: {
+  taskItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: 14,
-    paddingHorizontal: 10,
-    backgroundColor: '#fff',
-    borderRadius: 8,
-  },
-  itemText: {
-    fontSize: 18,
-  },
-  checkedText: {
-    textDecorationLine: 'line-through',
-    color: 'gray',
-  },
-  separator: {
-    height: 5,
-    backgroundColor: '#f2f2f2',
-  },
-  button: {
-    marginTop: 30,
-    backgroundColor: '#4CAF50',
     paddingVertical: 12,
-    borderRadius: 10,
-    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderColor: '#eee',
   },
-  buttonText: {
-    color: '#fff',
+  taskText: {
     fontSize: 16,
+  },
+  deleteButton: {
+    backgroundColor: '#ff4d4d',
+    paddingVertical: 4,
+    paddingHorizontal: 12,
+    borderRadius: 6,
+  },
+  deleteText: {
+    color: '#fff',
+    fontWeight: '600',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    marginTop: 20,
+  },
+  input: {
+    flex: 1,
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    fontSize: 16,
+  },
+  addButton: {
+    backgroundColor: '#4CAF50',
+    marginLeft: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+    justifyContent: 'center',
+  },
+  addText: {
+    color: '#fff',
   },
 });
